@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import String, Boolean, Integer, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
@@ -23,7 +23,7 @@ class User(Base, TimestampMixin):
     email: Mapped[Optional[str]] = mapped_column(String(120), unique=True, index=True, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(30), unique=True, index=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), default=UserRole.MANAGER, nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.CUSTOMER, nullable=False, index=True)
     
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
@@ -37,3 +37,7 @@ class User(Base, TimestampMixin):
 
     # Relationships
     audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
+    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    cart = relationship("Cart", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")

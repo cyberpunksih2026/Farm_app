@@ -66,12 +66,55 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Return current user if token present and valid; otherwise None (for guest operations)."""
+    if not auth or not auth.credentials:
+        return None
+
+    payload = decode_access_token(auth.credentials)
+    if not payload:
+        return None
+
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user or not user.is_active:
+        return None
+
+    return user
+
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """Ensure current user has ADMIN role."""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrative privileges required for this operation."
+            detail="Administrator privileges required for this operation."
+        )
+    return current_user
+
+
+def require_employee(current_user: User = Depends(get_current_user)) -> User:
+    """Ensure current user has EMPLOYEE or ADMIN role."""
+    if current_user.role not in [UserRole.EMPLOYEE, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Employee or Administrator privileges required."
+        )
+    return current_user
+
+
+def require_customer(current_user: User = Depends(get_current_user)) -> User:
+    """Ensure current user has CUSTOMER or ADMIN role."""
+    if current_user.role not in [UserRole.CUSTOMER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Customer access required. Please sign in with a customer account."
         )
     return current_user
 
@@ -84,14 +127,3 @@ def require_manager(current_user: User = Depends(get_current_user)) -> User:
             detail="Manager or Administrator privileges required."
         )
     return current_user
-
-
-def require_customer(current_user: User = Depends(get_current_user)) -> User:
-    """Ensure current user has CUSTOMER role (or ADMIN for management testing)."""
-    if current_user.role not in [UserRole.CUSTOMER, UserRole.ADMIN]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Customer access required. Please sign in with a customer account."
-        )
-    return current_user
-

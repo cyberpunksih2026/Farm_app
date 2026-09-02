@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.middleware import SecurityHeadersMiddleware, setup_exception_handlers
 from app.api.v1.router import api_router
+from app.api.v1.health import router as health_router
 from app.db.session import SessionLocal
 from app.db.init_db import init_db
 
@@ -13,16 +14,16 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-logger = logging.getLogger("attendance.main")
+logger = logging.getLogger("farmapp.main")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Verifying and initializing database on startup...")
+    logger.info("Verifying and initializing FarmApp database on startup...")
     db = SessionLocal()
     try:
         init_db(db)
-        logger.info("Database tables and baseline seeds verified successfully.")
+        logger.info("FarmApp database tables and baseline seeds verified successfully.")
     except Exception as e:
         logger.error(f"Critical error during startup database initialization: {e}", exc_info=True)
         raise e
@@ -30,13 +31,13 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
     # Shutdown
-    logger.info("Application shutting down...")
+    logger.info("FarmApp application shutting down...")
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Enterprise Employee Attendance Management System API",
+    description="FarmApp - Direct-from-Farm Marketplace & Intelligent Logistics Backend API",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
@@ -59,15 +60,20 @@ app.add_middleware(
 # 3. Setup sanitized exception handlers
 setup_exception_handlers(app)
 
-# 4. Mount API v1 router
+# 4. Mount root health checks
+app.include_router(health_router)
+
+# 5. Mount API v1 router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
-# Root health shortcut
-@app.get("/health", tags=["Health"])
-def root_health():
+@app.get("/", tags=["Root"])
+def root():
     return {
-        "status": "ok",
-        "service": settings.PROJECT_NAME,
-        "version": settings.VERSION
+        "project": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "description": "FarmApp Modular Monolith API",
+        "docs": f"{settings.API_V1_STR}/docs",
+        "api_v1": settings.API_V1_STR,
+        "status": "online"
     }

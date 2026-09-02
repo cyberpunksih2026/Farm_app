@@ -4,16 +4,16 @@ from app.schemas.user import UserResponse
 
 
 class LoginRequest(BaseModel):
-    username_or_email_phone: str = Field(..., description="Username or email address or phone")
-    password: str = Field(..., min_length=4)
+    username_or_email_phone: str = Field(..., min_length=3, description="Username, email, or mobile number")
+    password: str = Field(..., min_length=6)
 
 
 class RegisterCustomerRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, min_length=10, max_length=15)
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    phone: Optional[str] = Field(None, max_length=30)
     password: str = Field(..., min_length=6, max_length=100)
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
 
 
 class TokenResponse(BaseModel):
@@ -28,14 +28,14 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str = Field(..., min_length=10)
-    new_password: str = Field(..., min_length=4, max_length=100)
+    token: str
+    new_password: str = Field(..., min_length=6, max_length=100)
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=4, max_length=100)
+    current_password: str
+    new_password: str = Field(..., min_length=6, max_length=100)
 
 
 class EmailVerificationRequest(BaseModel):
-    token: str = Field(..., min_length=10)
+    token: str
