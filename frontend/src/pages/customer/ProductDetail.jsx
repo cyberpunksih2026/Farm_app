@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProductById, PRODUCTS } from '../../data/products';
 import { useCart } from '../../context/CartContext';
@@ -17,7 +17,8 @@ import {
   ShoppingCart,
   Award,
   Leaf,
-  Info
+  Info,
+  ZoomIn
 } from 'lucide-react';
 
 export const ProductDetail = () => {
@@ -27,6 +28,10 @@ export const ProductDetail = () => {
   const { getItemQuantity, addItem, updateQuantity } = useCart();
   const [transparencyOpen, setTransparencyOpen] = useState(false);
   const [addedAnimation, setAddedAnimation] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
 
   const quantity = getItemQuantity(product.id);
   const discountPercent = Math.round(((product.marketPrice - product.price) / product.marketPrice) * 100);
@@ -36,6 +41,26 @@ export const ProductDetail = () => {
     setAddedAnimation(true);
     setTimeout(() => setAddedAnimation(false), 1200);
   };
+
+  const handleMouseEnter = useCallback(() => {
+    setIsZoomed(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!containerRef.current || !imgRef.current) return;
+    const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+    if (width === 0 || height === 0) return;
+    const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - top) / height) * 100));
+    imgRef.current.style.transformOrigin = `${x.toFixed(2)}% ${y.toFixed(2)}%`;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsZoomed(false);
+    if (imgRef.current) {
+      imgRef.current.style.transformOrigin = 'center center';
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-slate-950 font-sans">
@@ -59,25 +84,44 @@ export const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
           {/* Left Column: Image */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-800">
+            <div
+              ref={containerRef}
+              onMouseEnter={handleMouseEnter}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 cursor-zoom-in select-none group"
+            >
               <img
+                ref={imgRef}
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover object-center"
+                className={`w-full h-full object-cover object-center transition-transform duration-200 ease-out will-change-transform ${
+                  isZoomed ? 'scale-[2.2]' : 'scale-100'
+                }`}
               />
 
               {product.freshnessTag && (
-                <div className="absolute top-4 left-4 px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
+                <div className="absolute top-4 left-4 px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-md pointer-events-none z-10 select-none">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>{product.freshnessTag}</span>
                 </div>
               )}
 
               {product.organicCertified && (
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-xl bg-brand-600 text-white text-xs font-bold uppercase tracking-wider shadow-md">
+                <div className="absolute top-4 right-4 px-3 py-1 rounded-xl bg-brand-600 text-white text-xs font-bold uppercase tracking-wider shadow-md pointer-events-none z-10 select-none">
                   100% Organic
                 </div>
               )}
+
+              {/* Subtle hover zoom pill */}
+              <div
+                className={`absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1.5 pointer-events-none z-10 transition-opacity duration-300 hidden sm:flex ${
+                  isZoomed ? 'opacity-0' : 'opacity-75 group-hover:opacity-100'
+                }`}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>Hover to zoom</span>
+              </div>
             </div>
 
             {/* FPO Origin Assurance Card */}
