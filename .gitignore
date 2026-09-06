@@ -42,7 +42,7 @@ yarn-error.log*
 *.sqlite
 *.sqlite3
 backend/data/
-data/
+
 backups/
 backend/backups/
 
